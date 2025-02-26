@@ -10,19 +10,10 @@ A Python-based symbolic N-body simulation using SymPy and Matplotlib. This proje
 
 ## Method Used
 The simulation employs a **simplified Velocity Verlet integration method**, a symplectic integrator adapted for symbolic computation:
-- **Force Calculation**: Uses Newton’s law of gravitation: \( F = G \frac{m_i m_j}{r^3} \cdot \vec{r} \).
-- **Velocity Update**: Computes \( \Delta v = \frac{F}{m} \cdot \tau \), then updates velocity as \( v_{\text{new}} = v + \Delta v \).
-- **Position Update**: Calculates average velocity \( v_{\text{avg}} = v + 0.5 \cdot \Delta v \), then updates position as \( x_{\text{new}} = x + v_{\text{avg}} \cdot \tau \).
+- **Force Calculation**: Uses Newton’s law of gravitation, \( F = G \frac{m_i m_j}{r^3} \cdot \vec{r} \), where \( r \) is the distance between bodies.
+- **Velocity Update**: Computes the change in velocity, \( \Delta v = \frac{F}{m} \cdot \tau \), then updates velocity as \( v_{\text{new}} = v + \Delta v \).
+- **Position Update**: Calculates average velocity, \( v_{\text{avg}} = v + 0.5 \cdot \Delta v \), then updates position as \( x_{\text{new}} = x + v_{\text{avg}} \cdot \tau \).
 - **Symbolic**: All steps are performed symbolically with SymPy, preserving unsimplified expressions.
 - **Simplification**: Uses initial forces only per timestep (no force recalculation at new positions), optimizing for symbolic output over numerical precision.
-This method builds complex, iterative equations suitable for analysis or education, executed over \( k \) timesteps.
 
-## Prerequisites
-- Python 3.x
-- Libraries: `sympy`, `matplotlib`
-
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Aregay01/NBody-Symbolic-Simulation.git
-   cd NBody-Symbolic-Simulation
+This method builds complex, iterative equations over \( k \) timesteps. Example output for \( x_1 \) after 2 steps (simplified for display):
