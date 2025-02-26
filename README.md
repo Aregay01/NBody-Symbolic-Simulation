@@ -8,6 +8,15 @@ A Python-based symbolic N-body simulation using SymPy and Matplotlib. This proje
 - Uses a truncated display (1000 characters per equation) for manageability.
 - Includes iteration number in the output PDF.
 
+## Method Used
+The simulation employs a **simplified Velocity Verlet integration method**, a symplectic integrator adapted for symbolic computation:
+- **Force Calculation**: Uses Newton’s law of gravitation: \( F = G \frac{m_i m_j}{r^3} \cdot \vec{r} \).
+- **Velocity Update**: Computes \( \Delta v = \frac{F}{m} \cdot \tau \), then updates velocity as \( v_{\text{new}} = v + \Delta v \).
+- **Position Update**: Calculates average velocity \( v_{\text{avg}} = v + 0.5 \cdot \Delta v \), then updates position as \( x_{\text{new}} = x + v_{\text{avg}} \cdot \tau \).
+- **Symbolic**: All steps are performed symbolically with SymPy, preserving unsimplified expressions.
+- **Simplification**: Uses initial forces only per timestep (no force recalculation at new positions), optimizing for symbolic output over numerical precision.
+This method builds complex, iterative equations suitable for analysis or education, executed over \( k \) timesteps.
+
 ## Prerequisites
 - Python 3.x
 - Libraries: `sympy`, `matplotlib`
