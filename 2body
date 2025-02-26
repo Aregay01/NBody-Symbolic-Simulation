@@ -1,0 +1,222 @@
+from sympy import symbols, Eq, Pow, latex
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+class NBody:
+    def __init__(self, N, G, tau):
+        self.N = N
+        self.G = G
+        self.tau = tau
+        self.objects = {}
+        self.velocity_change_dict = {}
+        self.average_velocity_dict = {}
+        self.position_change_dict = {}
+        self.current_iteration = 0  # Track the iteration number
+        self.create_symbols()
+
+    def create_symbols(self):
+        for i in range(1, self.N + 1):
+            state = {
+                'position': {f'x_{i}': symbols(f'x_{i}'), f'y_{i}': symbols(f'y_{i}'), f'z_{i}': symbols(f'z_{i}')},
+                'velocity': {f'v_x{i}': symbols(f'v_x{i}'), f'v_y{i}': symbols(f'v_y{i}'), f'v_z{i}': symbols(f'v_z{i}')}
+            }
+            self.objects[f'object_{i}'] = {
+                'mass': symbols(f'm_{i}'),
+                'state': state,
+                'force': {f'F_x{i}': 0, f'F_y{i}': 0, f'F_z{i}': 0}
+            }
+
+    def force(self):
+        for i in range(1, self.N + 1):
+            Fx, Fy, Fz = 0, 0, 0
+            for j in range(1, self.N + 1):
+                if i != j:
+                    r_x = self.objects[f'object_{j}']['state']['position'][f'x_{j}'] - \
+                          self.objects[f'object_{i}']['state']['position'][f'x_{i}']
+                    r_y = self.objects[f'object_{j}']['state']['position'][f'y_{j}'] - \
+                          self.objects[f'object_{i}']['state']['position'][f'y_{i}']
+                    r_z = self.objects[f'object_{j}']['state']['position'][f'z_{j}'] - \
+                          self.objects[f'object_{i}']['state']['position'][f'z_{i}']
+                    R_sq = Pow(r_x, 2, evaluate=False) + Pow(r_y, 2, evaluate=False) + Pow(r_z, 2, evaluate=False)
+                    R_cubed = Pow(R_sq, 3/2, evaluate=False)
+                    F_x = (self.G * self.objects[f'object_{i}']['mass'] * self.objects[f'object_{j}']['mass'] * r_x) / R_cubed
+                    F_y = (self.G * self.objects[f'object_{i}']['mass'] * self.objects[f'object_{j}']['mass'] * r_y) / R_cubed
+                    F_z = (self.G * self.objects[f'object_{i}']['mass'] * self.objects[f'object_{j}']['mass'] * r_z) / R_cubed
+                    Fx += F_x
+                    Fy += F_y
+                    Fz += F_z
+            self.objects[f'object_{i}']['force'] = {f'F_x{i}': Fx, f'F_y{i}': Fy, f'F_z{i}': Fz}
+
+    def change_in_velocity(self):
+        for i in range(1, self.N + 1):
+            mass = self.objects[f'object_{i}']['mass']
+            delta_v_x = (self.objects[f'object_{i}']['force'][f'F_x{i}'] / mass) * self.tau
+            delta_v_y = (self.objects[f'object_{i}']['force'][f'F_y{i}'] / mass) * self.tau
+            delta_v_z = (self.objects[f'object_{i}']['force'][f'F_z{i}'] / mass) * self.tau
+            self.velocity_change_dict[i] = {f'v_x{i}': delta_v_x, f'v_y{i}': delta_v_y, f'v_z{i}': delta_v_z}
+
+    def average_velocity(self):
+        for i in range(1, self.N + 1):
+            v_x = self.objects[f'object_{i}']['state']['velocity'][f'v_x{i}']
+            v_y = self.objects[f'object_{i}']['state']['velocity'][f'v_y{i}']
+            v_z = self.objects[f'object_{i}']['state']['velocity'][f'v_z{i}']
+            delta_v_x = self.velocity_change_dict[i][f'v_x{i}']
+            delta_v_y = self.velocity_change_dict[i][f'v_y{i}']
+            delta_v_z = self.velocity_change_dict[i][f'v_z{i}']
+            avg_v_x = v_x + 0.5 * delta_v_x
+            avg_v_y = v_y + 0.5 * delta_v_y
+            avg_v_z = v_z + 0.5 * delta_v_z
+            self.average_velocity_dict[i] = {f'v_x{i}': avg_v_x, f'v_y{i}': avg_v_y, f'v_z{i}': avg_v_z}
+
+    def current_velocity(self):
+        for i in range(1, self.N + 1):
+            v_x = self.objects[f'object_{i}']['state']['velocity'][f'v_x{i}']
+            v_y = self.objects[f'object_{i}']['state']['velocity'][f'v_y{i}']
+            v_z = self.objects[f'object_{i}']['state']['velocity'][f'v_z{i}']
+            delta_v_x = self.velocity_change_dict[i][f'v_x{i}']
+            delta_v_y = self.velocity_change_dict[i][f'v_y{i}']
+            delta_v_z = self.velocity_change_dict[i][f'v_z{i}']
+            self.objects[f'object_{i}']['state']['velocity'] = {
+                f'v_x{i}': v_x + delta_v_x,
+                f'v_y{i}': v_y + delta_v_y,
+                f'v_z{i}': v_z + delta_v_z
+            }
+
+    def change_in_position(self):
+        for i in range(1, self.N + 1):
+            avg_v_x = self.average_velocity_dict[i][f'v_x{i}']
+            avg_v_y = self.average_velocity_dict[i][f'v_y{i}']
+            avg_v_z = self.average_velocity_dict[i][f'v_z{i}']
+            self.position_change_dict[i] = {
+                f'delta_x{i}': avg_v_x * self.tau,
+                f'delta_y{i}': avg_v_y * self.tau,
+                f'delta_z{i}': avg_v_z * self.tau
+            }
+
+    def current_position(self):
+        for i in range(1, self.N + 1):
+            current_pos_x = self.objects[f'object_{i}']['state']['position'][f'x_{i}']
+            current_pos_y = self.objects[f'object_{i}']['state']['position'][f'y_{i}']
+            current_pos_z = self.objects[f'object_{i}']['state']['position'][f'z_{i}']
+            delta_x = self.position_change_dict[i][f'delta_x{i}']
+            delta_y = self.position_change_dict[i][f'delta_y{i}']
+            delta_z = self.position_change_dict[i][f'delta_z{i}']
+            self.objects[f'object_{i}']['state']['position'] = {
+                f'x_{i}': current_pos_x + delta_x,
+                f'y_{i}': current_pos_y + delta_y,
+                f'z_{i}': current_pos_z + delta_z
+            }
+
+    def write_force(self, obj, pdf_filename="nbody_forces.pdf"):
+        if obj > self.N:
+            print("Error: Object number exceeds total objects.")
+            return
+
+        force_x = self.objects[f'object_{obj}']['force'][f'F_x{obj}']
+        force_y = self.objects[f'object_{obj}']['force'][f'F_y{obj}']
+        force_z = self.objects[f'object_{obj}']['force'][f'F_z{obj}']
+
+        Fx = symbols(f'F_x{obj}')
+        Fy = symbols(f'F_y{obj}')
+        Fz = symbols(f'F_z{obj}')
+
+        eq_force_x = Eq(Fx, force_x, evaluate=False)
+        eq_force_y = Eq(Fy, force_y, evaluate=False)
+        eq_force_z = Eq(Fz, force_z, evaluate=False)
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.axis('off')
+        ax.text(0.1, 0.9, f"Iteration {self.current_iteration}", fontsize=10)
+        ax.text(0.1, 0.7, f"$F_x{obj} = {latex(eq_force_x.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.5, f"$F_y{obj} = {latex(eq_force_y.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.3, f"$F_z{obj} = {latex(eq_force_z.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.1, "Note: Equations truncated at 1000 chars", fontsize=8)
+        with PdfPages(pdf_filename) as pdf:
+            pdf.savefig(fig, bbox_inches='tight')
+        plt.close(fig)
+
+        print(f"Forces written to {pdf_filename}")
+
+    def write_velocity(self, obj, pdf_filename="nbody_velocities.pdf"):
+        if obj > self.N:
+            print("Error: Object number exceeds total objects.")
+            return
+
+        velocity_x = self.objects[f'object_{obj}']['state']['velocity'][f'v_x{obj}']
+        velocity_y = self.objects[f'object_{obj}']['state']['velocity'][f'v_y{obj}']
+        velocity_z = self.objects[f'object_{obj}']['state']['velocity'][f'v_z{obj}']
+
+        vx = symbols(f'v_x{obj}')
+        vy = symbols(f'v_y{obj}')
+        vz = symbols(f'v_z{obj}')
+
+        eq_vel_x = Eq(vx, velocity_x, evaluate=False)
+        eq_vel_y = Eq(vy, velocity_y, evaluate=False)
+        eq_vel_z = Eq(vz, velocity_z, evaluate=False)
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.axis('off')
+        ax.text(0.1, 0.9, f"Iteration {self.current_iteration}", fontsize=10)
+        ax.text(0.1, 0.7, f"$v_x{obj} = {latex(eq_vel_x.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.5, f"$v_y{obj} = {latex(eq_vel_y.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.3, f"$v_z{obj} = {latex(eq_vel_z.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.1, "Note: Equations truncated at 1000 chars", fontsize=8)
+        with PdfPages(pdf_filename) as pdf:
+            pdf.savefig(fig, bbox_inches='tight')
+        plt.close(fig)
+
+        print(f"Velocities written to {pdf_filename}")
+
+    def write_position(self, obj, pdf_filename="nbody_positions.pdf"):
+        if obj > self.N:
+            print("Error: Object number exceeds total objects.")
+            return
+
+        position_x = self.objects[f'object_{obj}']['state']['position'][f'x_{obj}']
+        position_y = self.objects[f'object_{obj}']['state']['position'][f'y_{obj}']
+        position_z = self.objects[f'object_{obj}']['state']['position'][f'z_{obj}']
+
+        x = symbols(f'x_{obj}')
+        y = symbols(f'y_{obj}')
+        z = symbols(f'z_{obj}')
+        
+        eq_pos_x = Eq(x, position_x, evaluate=False)
+        eq_pos_y = Eq(y, position_y, evaluate=False)
+        eq_pos_z = Eq(z, position_z, evaluate=False)
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.axis('off')
+        ax.text(0.1, 0.9, f"Iteration {self.current_iteration}", fontsize=10)
+        ax.text(0.1, 0.7, f"$x_{obj} = {latex(eq_pos_x.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.5, f"$y_{obj} = {latex(eq_pos_y.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.3, f"$z_{obj} = {latex(eq_pos_z.rhs)[:1000]}$", fontsize=8)
+        ax.text(0.1, 0.1, "Note: Equations truncated at 1000 chars", fontsize=8)
+        with PdfPages(pdf_filename) as pdf:
+            pdf.savefig(fig, bbox_inches='tight')
+        plt.close(fig)
+
+        print(f"Positions written to {pdf_filename}")
+
+    def simulate_nbody_timesteps(self, k):
+        for step in range(1, k + 1):
+            self.current_iteration = step  # Update iteration number
+            print(f'iteration {step}')
+            self.force()
+            self.change_in_velocity()
+            self.average_velocity()
+            self.current_velocity()
+            self.change_in_position()
+            self.current_position()
+            if step == k:
+                self.write_position(1)  # Only call write_position
+
+def main():
+    G = symbols('G')
+    tau = symbols('τ')
+    num_objects = 2
+    k = 2  # Kept at 2 for manageable output
+    nbody = NBody(num_objects, G, tau)
+    nbody.simulate_nbody_timesteps(k)
+
+if __name__ == "__main__":
+    main()
