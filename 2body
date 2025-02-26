@@ -11,7 +11,7 @@ class NBody:
         self.velocity_change_dict = {}
         self.average_velocity_dict = {}
         self.position_change_dict = {}
-        self.current_iteration = 0  # Track the iteration number
+        self.current_iteration = 0
         self.create_symbols()
 
     def create_symbols(self):
@@ -166,55 +166,55 @@ class NBody:
         plt.close(fig)
 
         print(f"Velocities written to {pdf_filename}")
-
+        
     def write_position(self, obj, pdf_filename="nbody_positions.pdf"):
         if obj > self.N:
             print("Error: Object number exceeds total objects.")
             return
 
+        # Get position data for each iteration
         position_x = self.objects[f'object_{obj}']['state']['position'][f'x_{obj}']
-        position_y = self.objects[f'object_{obj}']['state']['position'][f'y_{obj}']
-        position_z = self.objects[f'object_{obj}']['state']['position'][f'z_{obj}']
-
         x = symbols(f'x_{obj}')
-        y = symbols(f'y_{obj}')
-        z = symbols(f'z_{obj}')
         
+        # Create equation for position
         eq_pos_x = Eq(x, position_x, evaluate=False)
-        eq_pos_y = Eq(y, position_y, evaluate=False)
-        eq_pos_z = Eq(z, position_z, evaluate=False)
 
+        # Plot settings for each iteration
         fig, ax = plt.subplots(figsize=(12, 8))
         ax.axis('off')
         ax.text(0.1, 0.9, f"Iteration {self.current_iteration}", fontsize=10)
-        ax.text(0.1, 0.7, f"$x_{obj} = {latex(eq_pos_x.rhs)[:1000]}$", fontsize=8)
-        ax.text(0.1, 0.5, f"$y_{obj} = {latex(eq_pos_y.rhs)[:1000]}$", fontsize=8)
-        ax.text(0.1, 0.3, f"$z_{obj} = {latex(eq_pos_z.rhs)[:1000]}$", fontsize=8)
-        ax.text(0.1, 0.1, "Note: Equations truncated at 1000 chars", fontsize=8)
-        with PdfPages(pdf_filename) as pdf:
-            pdf.savefig(fig, bbox_inches='tight')
-        plt.close(fig)
-
-        print(f"Positions written to {pdf_filename}")
+        ax.text(0.1, 0.7, f"$x_{obj} = {latex(eq_pos_x.rhs)}$", fontsize=8)
+        ax.text(0.1, 0.1, "Note: Equations rendered fully", fontsize=8)
+        
+        # Return the figure so we can save it in the main simulation method
+        return fig
 
     def simulate_nbody_timesteps(self, k):
-        for step in range(1, k + 1):
-            self.current_iteration = step  # Update iteration number
-            print(f'iteration {step}')
-            self.force()
-            self.change_in_velocity()
-            self.average_velocity()
-            self.current_velocity()
-            self.change_in_position()
-            self.current_position()
-            if step == k:
-                self.write_position(1)  # Only call write_position
+        # Open the PDF for appending equations over iterations
+        pdf_filename = "nbody_positions.pdf"
+        with PdfPages(pdf_filename) as pdf:
+            for step in range(1, k + 1):
+                self.current_iteration = step
+                print(f'Iteration {step}')
+                self.force()  # Placeholder for force calculation
+                self.change_in_velocity()  # Placeholder for velocity update
+                self.average_velocity()  # Placeholder for averaging velocity
+                self.current_velocity()  # Placeholder for current velocity
+                self.change_in_position()  # Placeholder for position update
+                self.current_position()  # Placeholder for current position
+                
+                # Write the position formula to PDF for this iteration
+                fig = self.write_position(1, pdf_filename)
+
+                # Append this figure to the PDF
+                pdf.savefig(fig, bbox_inches='tight')
+                plt.close(fig)
 
 def main():
     G = symbols('G')
     tau = symbols('τ')
     num_objects = 2
-    k = 2  # Kept at 2 for manageable output
+    k = 5
     nbody = NBody(num_objects, G, tau)
     nbody.simulate_nbody_timesteps(k)
 
