@@ -15,5 +15,5 @@ A Python-based symbolic N-body simulation using SymPy and Matplotlib. This proje
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/NBody-Symbolic-Simulation.git
+   git clone https://github.com/Aregay01/NBody-Symbolic-Simulation.git
    cd NBody-Symbolic-Simulation
